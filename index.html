@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>BumpBite</title>
+<!-- PWA Meta Tags -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#E8725A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BumpBite">
+<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FFF8F3;--bg2:#FFF1E8;--card:#FFFFFF;--primary:#E8725A;--primary-light:#FDEAE6;--primary-dark:#C95D48;--accent:#6BAB8D;--accent-light:#E3F3EC;--yellow:#F5C842;--yellow-light:#FFF8E1;--text:#3D2C2C;--text-muted:#8C7575;--border:#F0E0D8;--danger:#D94F4F;--danger-light:#FDECEC;--shadow:0 2px 12px rgba(61,44,44,0.06);--radius:16px;--radius-sm:10px}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden}
+
+.header{background:linear-gradient(135deg,#E8725A 0%,#F09A7A 50%,#F5C842 100%);padding:20px 20px 28px;position:relative;overflow:hidden}
+.header::before{content:'';position:absolute;top:-40px;right:-40px;width:150px;height:150px;background:rgba(255,255,255,0.12);border-radius:50%}
+.header h1{font-family:'DM Serif Display',serif;font-size:28px;color:#fff;position:relative;z-index:1}
+.header p{color:rgba(255,255,255,0.9);font-size:14px;margin-top:4px;position:relative;z-index:1}
+.header .tri-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.25);backdrop-filter:blur(8px);padding:6px 14px;border-radius:20px;font-size:13px;font-weight:600;color:#fff;margin-top:12px;position:relative;z-index:1}
+
+.tab-nav{display:flex;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.tab-btn{flex:1;padding:14px 8px;border:none;background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;position:relative;transition:color 0.2s;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tab-btn .tab-icon{font-size:20px}
+.tab-btn.active{color:var(--primary)}
+.tab-btn.active::after{content:'';position:absolute;bottom:0;left:20%;right:20%;height:3px;background:var(--primary);border-radius:3px 3px 0 0}
+
+.section{display:none;padding:16px;padding-bottom:100px}
+.section.active{display:block;animation:fadeIn 0.3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* FOOD CHECKER */
+.search-box{position:relative;margin-bottom:16px}
+.search-box input{width:100%;padding:16px 16px 16px 48px;border:2px solid var(--border);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:16px;background:var(--card);color:var(--text);outline:none;transition:border-color 0.2s,box-shadow 0.2s}
+.search-box input:focus{border-color:var(--primary);box-shadow:0 0 0 4px var(--primary-light)}
+.search-box input::placeholder{color:#C4AAAA}
+.search-box .si{position:absolute;left:16px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--text-muted)}
+
+.tri-sel{display:flex;gap:8px;margin-bottom:20px}
+.tri-b{flex:1;padding:10px 8px;border:2px solid var(--border);border-radius:var(--radius-sm);background:var(--card);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.2s;text-align:center}
+.tri-b.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary-dark)}
+
+.food-results{display:flex;flex-direction:column;gap:10px}
+.food-card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow);border-left:4px solid transparent;animation:slideUp 0.3s ease}
+@keyframes slideUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.food-card.safe{border-left-color:var(--accent)}.food-card.caution{border-left-color:var(--yellow)}.food-card.avoid{border-left-color:var(--danger)}
+.food-card .fh{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
+.food-card .fn{font-weight:700;font-size:16px}
+.food-card .fb{font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;white-space:nowrap}
+.fb.safe{background:var(--accent-light);color:#3D8B6A}.fb.caution{background:var(--yellow-light);color:#9E8420}.fb.avoid{background:var(--danger-light);color:var(--danger)}
+.food-card .fi{font-size:14px;color:var(--text-muted);line-height:1.5}
+.food-card .fnu{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.food-card .nt{font-size:11px;padding:4px 10px;background:var(--bg2);border-radius:12px;color:var(--text-muted);font-weight:500}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--text-muted)}
+.empty-state .ei{font-size:48px;margin-bottom:12px}
+.empty-state p{font-size:14px;line-height:1.6}
+.fc{text-align:center;font-size:12px;color:var(--text-muted);margin-bottom:12px;font-weight:500}
+
+/* DATE NAV */
+.date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;gap:8px}
+.dn-btn{width:40px;height:40px;border-radius:50%;border:2px solid var(--border);background:var(--card);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;color:var(--text-muted);flex-shrink:0}
+.dn-btn:hover{border-color:var(--primary);color:var(--primary)}
+.dn-btn:disabled{opacity:0.3;cursor:default}
+.dn-center{text-align:center;flex:1}
+.dn-center .dm{font-family:'DM Serif Display',serif;font-size:20px}
+.dn-center .ds{font-size:12px;color:var(--text-muted);font-weight:500;margin-top:2px}
+.today-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--primary);background:var(--primary-light);padding:2px 8px;border-radius:10px;margin-left:6px}
+.past-badge{display:inline-block;font-size:10px;font-weight:700;color:var(--text-muted);background:var(--bg2);padding:2px 8px;border-radius:10px;margin-left:6px}
+
+/* WEEK STRIP */
+.week-strip{display:flex;gap:6px;justify-content:center;margin-bottom:20px;padding:12px;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow)}
+.wd{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;cursor:pointer;padding:6px 2px;border-radius:var(--radius-sm);transition:background 0.2s}
+.wd:hover{background:var(--bg2)}.wd.sel{background:var(--primary-light)}
+.wd .wl{font-size:10px;font-weight:600;color:var(--text-muted);text-transform:uppercase}
+.wd .wn{font-size:13px;font-weight:700;color:var(--text)}
+.wd .wo{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+.wo.none{background:var(--bg2);color:var(--text-muted)}.wo.low{background:#FDEAE6;color:#C95D48}.wo.mid{background:var(--yellow-light);color:#9E8420}.wo.high{background:var(--accent-light);color:#3D8B6A}.wo.full{background:var(--accent);color:#fff}.wo.future{background:var(--bg2);color:#D4C4C4}
+
+/* CHECKLIST */
+.pb-wrap{background:var(--border);border-radius:20px;height:10px;margin-bottom:6px;overflow:hidden}
+.pb-fill{height:100%;background:linear-gradient(90deg,var(--accent),#8ED4B0);border-radius:20px;transition:width 0.4s ease}
+.pb-text{font-size:13px;color:var(--text-muted);font-weight:500;margin-bottom:20px}
+
+.past-banner{text-align:center;padding:10px 14px;background:var(--bg2);border-radius:var(--radius-sm);font-size:13px;color:var(--text-muted);font-weight:600;margin-bottom:16px}
+.past-banner .gt{color:var(--primary);text-decoration:underline;cursor:pointer;margin-left:4px}
+
+.cl-cat{margin-bottom:20px}
+.ch{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.ch .ci{font-size:18px}.ch .ct{font-size:15px;font-weight:700}
+.ch .cc{margin-left:auto;font-size:12px;color:var(--text-muted);font-weight:600}
+.ch .ctime{font-size:11px;color:var(--primary);font-weight:600;background:var(--primary-light);padding:2px 8px;border-radius:10px;margin-left:6px}
+
+.ck-item{display:flex;align-items:flex-start;gap:12px;padding:12px;background:var(--card);border-radius:var(--radius-sm);margin-bottom:6px;box-shadow:0 1px 4px rgba(61,44,44,0.04);transition:all 0.2s;cursor:pointer;-webkit-user-select:none;user-select:none}
+.ck-item:active{transform:scale(0.98)}
+.ck-item.checked{opacity:0.55}.ck-item.checked .ck-text{text-decoration:line-through}
+.ck-item.ro{cursor:default;pointer-events:none}
+
+.ck-circle{width:24px;height:24px;min-width:24px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all 0.2s;margin-top:1px;font-size:14px;color:transparent}
+.ck-item.checked .ck-circle{border-color:var(--accent);background:var(--accent);color:#fff}
+
+.ck-content{flex:1}
+.ck-text{font-size:14px;font-weight:600;transition:all 0.2s}
+.ck-sub{font-size:12px;color:var(--text-muted);margin-top:2px;line-height:1.4}
+
+.it{display:inline-block;font-size:10px;padding:2px 6px;border-radius:6px;font-weight:600;margin-top:4px}
+.it.food{background:#FFF1E8;color:#C95D48}.it.supplement{background:#EDE7F6;color:#7E57C2}.it.hydration{background:#E3F2FD;color:#42A5F5}.it.wellness{background:#E8F5E9;color:#66BB6A}
+
+.add-btn{width:100%;padding:12px;border:2px dashed var(--border);border-radius:var(--radius-sm);background:none;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:var(--text-muted);cursor:pointer;transition:all 0.2s;margin-bottom:6px}
+.add-btn:hover{border-color:var(--primary);color:var(--primary)}
+
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(61,44,44,0.4);z-index:200;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.modal-overlay.show{display:flex}
+.modal{background:var(--card);border-radius:24px 24px 0 0;padding:24px 20px 32px;width:100%;max-width:480px;animation:slideM 0.3s ease}
+@keyframes slideM{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal h3{font-family:'DM Serif Display',serif;font-size:20px;margin-bottom:16px}
+.modal input,.modal select{width:100%;padding:14px 16px;border:2px solid var(--border);border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;color:var(--text);margin-bottom:12px;outline:none;background:var(--bg)}
+.modal input:focus,.modal select:focus{border-color:var(--primary)}
+.modal-btns{display:flex;gap:10px;margin-top:8px}
+.modal-btns button{flex:1;padding:14px;border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer}
+.btn-c{background:var(--bg2);color:var(--text-muted)}.btn-a{background:var(--primary);color:#fff}
+
+.rst-btn{display:block;margin:20px auto;padding:10px 24px;border:2px solid var(--border);border-radius:var(--radius-sm);background:none;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;color:var(--text-muted);cursor:pointer}
+.del-btn{background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:4px;opacity:0.5;transition:opacity 0.2s}
+.del-btn:hover{opacity:1;color:var(--danger)}
+
+.disc{margin-top:24px;padding:14px;background:var(--yellow-light);border-radius:var(--radius-sm);font-size:12px;color:#8A7830;line-height:1.5;text-align:center}
+
+/* Install banner */
+.install-banner{display:none;padding:12px 16px;background:var(--accent-light);border-radius:var(--radius-sm);margin:16px;align-items:center;gap:12px;box-shadow:var(--shadow)}
+.install-banner.show{display:flex}
+.install-banner p{flex:1;font-size:13px;font-weight:600;color:#3D8B6A}
+.install-banner button{padding:8px 16px;border:none;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer}
+.install-banner .dismiss{background:none;color:var(--text-muted);font-size:18px;padding:4px 8px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌸 BumpBite</h1>
+  <p>Your pregnancy nutrition companion</p>
+  <div class="tri-badge">🤰 First Trimester (Weeks 1-12)</div>
+</div>
+
+<!-- Install Banner (shows when installable) -->
+<div class="install-banner" id="installBanner">
+  <p>Install BumpBite for the best experience!</p>
+  <button id="installBtn">Install</button>
+  <button class="dismiss" id="dismissInstall">×</button>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" data-tab="checker"><span class="tab-icon">🔍</span>Food Checker</button>
+  <button class="tab-btn" data-tab="checklist"><span class="tab-icon">✅</span>Daily Checklist</button>
+</div>
+
+<!-- FOOD CHECKER -->
+<div class="section active" id="checker">
+  <div class="search-box">
+    <span class="si">🔍</span>
+    <input type="text" id="foodSearch" placeholder="Search a food... e.g. makhana, blueberry" autocomplete="off">
+  </div>
+  <div class="tri-sel">
+    <button class="tri-b active" data-tri="1">1st Tri</button>
+    <button class="tri-b" data-tri="2">2nd Tri</button>
+    <button class="tri-b" data-tri="3">3rd Tri</button>
+  </div>
+  <div class="fc" id="foodCount"></div>
+  <div class="food-results" id="foodResults">
+    <div class="empty-state"><div class="ei">🥗</div><p>Type a food name to check safety</p></div>
+  </div>
+  <div class="disc">⚠️ General guidance only — always consult your OB-GYN.</div>
+</div>
+
+<!-- CHECKLIST -->
+<div class="section" id="checklist">
+  <div class="date-nav">
+    <button class="dn-btn" id="datePrev" onclick="navDate(-1)">‹</button>
+    <div class="dn-center"><div class="dm" id="dateMain"></div><div class="ds" id="dateSub"></div></div>
+    <button class="dn-btn" id="dateNext" onclick="navDate(1)">›</button>
+  </div>
+  <div class="week-strip" id="weekStrip"></div>
+  <div class="past-banner" id="pastBanner" style="display:none">📅 Viewing past date (read-only) <span class="gt" onclick="goToday()">Go to today →</span></div>
+  <div class="pb-wrap"><div class="pb-fill" id="pBar" style="width:0%"></div></div>
+  <div class="pb-text" id="pText">0 of 0 completed</div>
+  <div id="clContainer"></div>
+  <button class="rst-btn" id="rstBtn" onclick="resetCl()">↻ Reset today's checks</button>
+  <div class="disc">⚠️ General guide for first trimester. Adjust per your doctor's advice.</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <h3>Add Custom Item</h3>
+    <input type="text" id="niName" placeholder="Item name">
+    <input type="text" id="niDesc" placeholder="Description (optional)">
+    <select id="niSlot"></select>
+    <select id="niType">
+      <option value="food">🍽️ Food</option>
+      <option value="supplement">💊 Supplement</option>
+      <option value="hydration">💧 Hydration</option>
+      <option value="wellness">🧘 Wellness</option>
+    </select>
+    <div class="modal-btns">
+      <button class="btn-c" onclick="closeModal()">Cancel</button>
+      <button class="btn-a" onclick="addCustom()">Add Item</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ================================================================
+// FOOD DATABASE — 85+ foods
+// ================================================================
+var DB=[
+{name:"Banana",a:["bananas","kela","bale hannu"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Helps with morning sickness and quick energy. Rich in potassium.",2:"Great snack. Helps with leg cramps.",3:"Energy boost, helps constipation."},n:["Potassium","Vitamin B6","Fiber"]},
+{name:"Apple",a:["apples","seb"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Great fiber and vitamins. Helps with nausea when sliced.",2:"Pectin fiber aids digestion.",3:"Keeps you regular."},n:["Fiber","Vitamin C","Antioxidants"]},
+{name:"Pomegranate",a:["anar","dalimbe"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in iron and folate — crucial first-trimester nutrients.",2:"Boosts hemoglobin.",3:"Supports blood production."},n:["Iron","Folate","Vitamin C","Antioxidants"]},
+{name:"Blueberries",a:["blueberry","blue berry","blue berries"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Antioxidant powerhouse! Great for brain development. Add to yogurt, oats, or smoothies.",2:"Supports immunity and baby's brain.",3:"Excellent snack. Anti-inflammatory."},n:["Antioxidants","Vitamin C","Vitamin K","Manganese","Fiber"]},
+{name:"Strawberries",a:["strawberry"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in Vitamin C and folate. Wash thoroughly.",2:"Good folate source.",3:"Helps iron absorption."},n:["Vitamin C","Folate","Manganese","Fiber"]},
+{name:"Raspberries",a:["raspberry"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"High in fiber and folate.",2:"Great for digestion.",3:"Fiber helps constipation."},n:["Fiber","Vitamin C","Folate"]},
+{name:"Cranberries",a:["cranberry","cranberry juice"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Helps prevent UTIs common in pregnancy.",2:"Continue for UTI prevention.",3:"Good for urinary health."},n:["Vitamin C","Antioxidants","Fiber"]},
+{name:"Mango",a:["aam","mangoes"],s:{1:"safe",2:"safe",3:"caution"},i:{1:"Rich in Vitamin A and C. Moderate amounts.",2:"1-2 servings/day fine.",3:"Limit — high sugar."},n:["Vitamin A","Vitamin C","Fiber"]},
+{name:"Orange / Mosambi",a:["oranges","santra","mosambi","sweet lime"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent Vitamin C and folate. Great for nausea.",2:"Continue for hydration.",3:"Good for iron absorption."},n:["Vitamin C","Folate","Potassium"]},
+{name:"Watermelon",a:["tarbooz","kalingad"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Great for hydration and morning sickness.",2:"Excellent hydrator.",3:"Helps with heartburn."},n:["Hydration","Vitamin C","Lycopene"]},
+{name:"Kiwi",a:["kiwi fruit"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Very high in Vitamin C and folate. Helps constipation.",2:"Continue for digestion.",3:"Helps constipation and immunity."},n:["Vitamin C","Folate","Vitamin K","Fiber"]},
+{name:"Chikoo / Sapota",a:["chikoo","sapota","sapodilla","chiku"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good energy and fiber. Helps nausea when ripe.",2:"Rich in minerals.",3:"Good energy snack."},n:["Iron","Fiber","Vitamin A"]},
+{name:"Guava",a:["amrood","peru","sebe hannu"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Extremely rich in Vitamin C! Helps constipation.",2:"Great for immunity.",3:"Rich fiber."},n:["Vitamin C","Fiber","Folate","Potassium"]},
+{name:"Grapes",a:["angoor"],s:{1:"caution",2:"safe",3:"caution"},i:{1:"Some doctors advise limiting in first trimester.",2:"Generally safe in moderation.",3:"Some advise caution."},n:["Vitamin C","Vitamin K","Antioxidants"]},
+{name:"Papaya (Ripe)",a:["papaya","pappaya","papita"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Many doctors advise caution in first trimester.",2:"Okay in moderation.",3:"Fine. Helps digestion."},n:["Vitamin C","Fiber"]},
+{name:"Papaya (Unripe/Raw)",a:["raw papaya","green papaya","kacha papita"],s:{1:"avoid",2:"avoid",3:"caution"},i:{1:"AVOID — latex and papain may cause contractions.",2:"Best to avoid.",3:"Still best avoided."},n:[]},
+{name:"Pineapple",a:["ananas"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Contains bromelain — caution in first trimester.",2:"Safe in normal amounts.",3:"Safe normally."},n:["Vitamin C","Manganese"]},
+{name:"Jackfruit",a:["kathal","halasina hannu"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Traditional advice: limit in first trimester.",2:"Safe normally.",3:"Generally safe."},n:["Vitamin C","Potassium","Fiber"]},
+{name:"Avocado",a:["butter fruit"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in folate and healthy fats. Great in smoothies.",2:"Supports brain development.",3:"Healthy fats and potassium."},n:["Folate","Healthy Fats","Potassium","Fiber"]},
+{name:"Pear",a:["nashpati","pears"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Gentle on stomach, high fiber.",2:"Helps digestion.",3:"Good fiber for constipation."},n:["Fiber","Vitamin C","Potassium"]},
+{name:"Litchi / Lychee",a:["litchi","lychee","lichu"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"High sugar. 5-6 max.",2:"Safe in moderate amounts.",3:"Okay in moderation."},n:["Vitamin C","Potassium"]},
+{name:"Spinach",a:["palak","leafy greens"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Folate superstar — crucial for neural tube development.",2:"Continue for iron and folate.",3:"Helps prevent anemia."},n:["Folate","Iron","Vitamin K","Calcium"]},
+{name:"Broccoli",a:["brocolli"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Packed with folate, calcium, fiber.",2:"Great veggie choice.",3:"Fiber helps constipation."},n:["Folate","Calcium","Vitamin C","Fiber"]},
+{name:"Sweet Potato",a:["shakarkandi","genasina gedde"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent Vitamin A and fiber. Great for nausea.",2:"Supports eye development.",3:"Good complex carb."},n:["Vitamin A","Fiber","Vitamin C"]},
+{name:"Beetroot",a:["beet","chukandar"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent iron and folate.",2:"Maintains hemoglobin.",3:"Good for blood production."},n:["Iron","Folate","Fiber"]},
+{name:"Carrot",a:["gajar","carrots"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in beta-carotene.",2:"Supports eye development.",3:"Great as snack or sabzi."},n:["Vitamin A","Fiber","Vitamin K"]},
+{name:"Tomato",a:["tamatar","tomatoes"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good Vitamin C and lycopene.",2:"May cause heartburn.",3:"Watch for heartburn."},n:["Vitamin C","Lycopene","Potassium"]},
+{name:"Pumpkin",a:["kaddu","kumbalkai"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in beta-carotene and iron.",2:"Supports eye development.",3:"Easy to digest."},n:["Vitamin A","Iron","Fiber"]},
+{name:"Bottle Gourd",a:["lauki","dudhi","sorakaya","sorekayi"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Light, hydrating, easy to digest.",2:"Cooling and nutritious.",3:"Helps water retention."},n:["Hydration","Fiber","Vitamin C"]},
+{name:"Drumstick",a:["moringa","sahjan","nuggekayi","moringa leaves"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"In sambar fine. Avoid moringa supplements.",2:"Safe in cooked food.",3:"Rich in iron and calcium."},n:["Iron","Calcium","Vitamins"]},
+{name:"Eggplant / Brinjal",a:["brinjal","baingan","aubergine","badanekayi"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Traditional advice: limit in first trimester.",2:"Generally safe.",3:"Safe normally."},n:["Fiber","Vitamins"]},
+{name:"Cabbage",a:["patta gobi","band gobi"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in folate. Cook well.",2:"Good fiber.",3:"Cook well."},n:["Folate","Vitamin C","Fiber"]},
+{name:"Capsicum / Bell Pepper",a:["capsicum","bell pepper","shimla mirch"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in Vitamin C.",2:"Great in stir-fries.",3:"Good Vitamin C."},n:["Vitamin C","Vitamin A","Fiber"]},
+{name:"Corn",a:["maize","makka","bhutta","sweet corn"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good fiber and energy.",2:"Nutritious snack.",3:"Watch portions."},n:["Fiber","B Vitamins","Folate"]},
+{name:"Mushrooms (Cooked)",a:["mushroom","button mushroom","mushrooms"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good Vitamin D. Store-bought, well-cooked only.",2:"Continue for Vitamin D.",3:"Well-cooked, store-bought."},n:["Vitamin D","B Vitamins","Selenium"]},
+{name:"Rice",a:["chawal","white rice","brown rice","basmati"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Easy on stomach. Brown rice has more fiber.",2:"Good energy.",3:"Watch portions."},n:["Carbs","Energy","B Vitamins"]},
+{name:"Roti / Chapati",a:["roti","chapati","phulka","wheat bread","atta"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Whole wheat — great fiber and iron.",2:"Good sustained energy.",3:"Fiber helps constipation."},n:["Fiber","Iron","Carbs"]},
+{name:"Idli",a:["idly"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Fermented, light — perfect for morning sickness.",2:"Great breakfast.",3:"Light and easy."},n:["Carbs","Protein","Probiotics"]},
+{name:"Dosa",a:["dosai","masala dosa"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Fermented batter aids digestion. Try ragi dosa.",2:"Add paneer or veggies.",3:"Avoid very oily versions."},n:["Carbs","Protein","Iron"]},
+{name:"Oats",a:["oatmeal","oats porridge"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"High fiber, helps constipation.",2:"Great sustained energy.",3:"Helps constipation."},n:["Fiber","Iron","B Vitamins"]},
+{name:"Poha",a:["flattened rice","aval","chivda"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Light, iron-fortified. Add peanuts and lemon.",2:"Good with veggies.",3:"Light and easy."},n:["Iron","Carbs","B Vitamins"]},
+{name:"Upma",a:["uppittu"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Warm, comforting, easy-to-digest.",2:"Add lots of veggies.",3:"Good if appetite low."},n:["Carbs","Fiber","Iron"]},
+{name:"Ragi / Finger Millet",a:["ragi","nachni","finger millet","ragi malt","ragi dosa","ragi mudde"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Calcium-rich superfood! Great Bengaluru staple.",2:"Continue for calcium and iron.",3:"One of the best pregnancy foods."},n:["Calcium","Iron","Fiber","Amino Acids"]},
+{name:"Bajra / Pearl Millet",a:["bajra","pearl millet","kambu","sajje"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in iron and fiber.",2:"Good alternative grain.",3:"Helps hemoglobin."},n:["Iron","Fiber","Magnesium","Protein"]},
+{name:"Quinoa",a:["kinwa"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Complete protein — all essential amino acids.",2:"Excellent for baby's growth.",3:"Nutrient-dense."},n:["Protein","Iron","Fiber","Folate"]},
+{name:"Maida / Refined Flour",a:["maida","refined flour","naan","biscuits"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Low nutrition. Choose whole wheat.",2:"Limit.",3:"Worsens constipation."},n:["Carbs"]},
+{name:"Dal (Lentils)",a:["dal","daal","lentils","toor dal","moong dal","masoor dal","chana dal","urad dal","sambar"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Folate and iron powerhouse. Moong dal lightest if nauseous.",2:"Pair with lemon for absorption.",3:"Helps prevent anemia."},n:["Folate","Iron","Protein","Fiber"]},
+{name:"Chickpeas / Chana",a:["chickpeas","chole","chana","kabuli chana"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent protein, iron, folate. May cause gas.",2:"Good protein. Cook well.",3:"Watch for gas."},n:["Protein","Iron","Folate","Fiber"]},
+{name:"Rajma / Kidney Beans",a:["rajma","kidney beans"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in protein and iron. Pressure-cook well.",2:"Great protein and fiber.",3:"Cook well."},n:["Protein","Iron","Fiber","Folate"]},
+{name:"Sprouts (Cooked)",a:["sprouts","moong sprouts cooked","cooked sprouts"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Cooked sprouts are safe and nutritious.",2:"Always cook.",3:"Always cooked."},n:["Protein","Folate","Iron","Fiber"]},
+{name:"Raw Sprouts",a:["raw sprouts","alfalfa sprouts"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"Can harbor Salmonella/E.coli. Always cook.",2:"Never raw.",3:"Always cook."},n:[]},
+{name:"Milk",a:["doodh","whole milk","toned milk"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Always pasteurized. Haldi milk helps sleep.",2:"2-3 glasses daily.",3:"Warm milk at bedtime."},n:["Calcium","Protein","Vitamin D"]},
+{name:"Curd / Yogurt",a:["curd","yogurt","dahi","raita","lassi","chaas","buttermilk"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent probiotic. Helps nausea.",2:"Continue for gut health.",3:"Supports digestion."},n:["Calcium","Probiotics","Protein"]},
+{name:"Greek Yogurt",a:["greek yogurt","thick yogurt"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Higher protein. Great with berries.",2:"Excellent protein and calcium.",3:"Continue for protein."},n:["Protein","Calcium","Probiotics"]},
+{name:"Paneer",a:["cottage cheese","panir"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent protein and calcium.",2:"Supports bone development.",3:"Good protein and calcium."},n:["Protein","Calcium","Vitamin B12"]},
+{name:"Ghee",a:["clarified butter","nei","tuppa"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"1-2 tsp daily fine. Aids nutrient absorption.",2:"Moderate amounts help vitamin absorption.",3:"2 tsp/day max."},n:["Healthy Fats","Vitamin A","Vitamin E"]},
+{name:"Cheese (Hard/Pasteurized)",a:["cheese","cheddar","mozzarella","amul cheese"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Hard and pasteurized cheeses safe.",2:"Good calcium.",3:"Continue."},n:["Calcium","Protein","B12"]},
+{name:"Soft / Unpasteurized Cheese",a:["brie","camembert","blue cheese","feta"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"Risk of Listeria.",2:"Continue avoiding.",3:"Continue avoiding."},n:[]},
+{name:"Ice Cream",a:["kulfi"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Store-bought pasteurized fine occasionally. No soft-serve.",2:"Occasional treat.",3:"Watch sugar."},n:["Calcium","Sugar"]},
+{name:"Chicken",a:["murgh","chicken breast","chicken curry","grilled chicken"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Great lean protein. Always fully cooked. Soup great for nausea.",2:"Excellent for growth.",3:"Grilled or curry over fried."},n:["Protein","Iron","B Vitamins","Zinc"]},
+{name:"Mutton / Lamb",a:["mutton","lamb","goat meat","keema"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in iron and protein. Must be well-cooked.",2:"Good iron. Always well-done.",3:"Iron for delivery prep."},n:["Iron","Protein","Zinc","B12"]},
+{name:"Eggs (Scrambled/Omelette)",a:["egg","eggs","omelette","scrambled eggs","anda","egg bhurji"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent choline for brain development. Scrambled, omelette, or bhurji!",2:"Choline critical for brain.",3:"Continue for protein and choline."},n:["Choline","Protein","Vitamin D","B12"]},
+{name:"Boiled Eggs",a:["hard boiled egg","boiled anda"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Safe when fully hard-boiled. Scrambled/omelette work just as well!",2:"Same nutrition.",3:"Any fully cooked form great."},n:["Protein","Choline","B12"]},
+{name:"Raw / Uncooked Eggs",a:["runny eggs","raw eggs","half boiled","soft boiled"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"Risk of Salmonella. Always fully cooked.",2:"Continue avoiding.",3:"Continue avoiding."},n:[]},
+{name:"Prawns / Shrimp",a:["prawns","shrimp","jhinga"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Low mercury. Safe if fully cooked.",2:"Safe well-cooked.",3:"Continue."},n:["Protein","Omega-3","Iodine"]},
+{name:"Fish (High Mercury)",a:["fish","swordfish","king mackerel","shark","tuna","surmai","rawas","meen"],s:{1:"avoid",2:"caution",3:"caution"},i:{1:"High mercury — AVOID. She doesn't like fish, easy skip!",2:"Low-mercury like salmon okay. Fine to skip.",3:"Supplements replace omega-3."},n:["Mercury risk"]},
+{name:"Raw / Undercooked Meat",a:["rare steak","medium rare","sushi","tartare","raw meat"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"Risk of Toxoplasma. Must be well-done.",2:"Continue well-cooked.",3:"Continue avoiding."},n:[]},
+{name:"Liver",a:["chicken liver","mutton liver","kaleji"],s:{1:"avoid",2:"caution",3:"caution"},i:{1:"Very high Vitamin A — avoid first trimester.",2:"Small amounts occasionally okay.",3:"Small amounts occasionally okay."},n:["Vitamin A (excess)","Iron"]},
+{name:"Foxnuts / Makhana",a:["makhana","foxnuts","fox nuts","lotus seeds","phool makhana","fox nut"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent pregnancy snack! Low calorie, high protein, rich in calcium and iron. Roast in ghee with salt.",2:"Great snack. Helps manage weight.",3:"Continue — good calcium."},n:["Calcium","Protein","Iron","Magnesium","Phosphorus","Low Fat"]},
+{name:"Almonds",a:["badam","almond"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Soaked almonds — folic acid, vitamin E. 8-10 daily.",2:"Continue for healthy fats.",3:"Good for brain development."},n:["Vitamin E","Folic Acid","Healthy Fats","Protein"]},
+{name:"Walnuts",a:["akhrot"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in omega-3 for brain. 4-5 daily.",2:"Continue for omega-3.",3:"Supports brain growth."},n:["Omega-3","Protein","Antioxidants"]},
+{name:"Dates",a:["khajoor","khajur"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Natural iron booster. 2-3 daily.",2:"Continue for iron.",3:"May help labor. 3-4 daily."},n:["Iron","Fiber","Potassium","Energy"]},
+{name:"Cashews",a:["kaju","cashew"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good zinc and iron. 5-8 daily.",2:"Good zinc for baby.",3:"Continue in moderation."},n:["Zinc","Iron","Magnesium"]},
+{name:"Pistachios",a:["pista"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in protein and fiber. 10-15 daily.",2:"Helps blood sugar.",3:"Good snack."},n:["Protein","Fiber","Vitamin B6"]},
+{name:"Flax Seeds",a:["flaxseed","alsi","agase"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Omega-3 and fiber. 1 tbsp ground daily.",2:"Good for omega-3.",3:"Helps constipation."},n:["Omega-3","Fiber","Lignans"]},
+{name:"Chia Seeds",a:["chia"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Omega-3, calcium, fiber. Soak before eating.",2:"Continue.",3:"Helps hydration and constipation."},n:["Omega-3","Calcium","Fiber","Protein"]},
+{name:"Pumpkin Seeds",a:["kaddu ke beej"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in zinc, iron, magnesium.",2:"Good zinc for baby.",3:"Continue."},n:["Zinc","Iron","Magnesium"]},
+{name:"Sunflower Seeds",a:["surajmukhi ke beej"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good Vitamin E and folate.",2:"Continue for folate.",3:"Healthy snack."},n:["Vitamin E","Folate","Selenium"]},
+{name:"Sesame Seeds",a:["til","ellu","gingelly"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Traditional advice: limit in first trimester. Small food amounts fine.",2:"Safe normally. Good calcium.",3:"Safe."},n:["Calcium","Iron","Healthy Fats"]},
+{name:"Raisins",a:["kishmish","dry grapes"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good iron and energy.",2:"Continue for iron.",3:"Good energy."},n:["Iron","Energy","Fiber"]},
+{name:"Dried Figs",a:["anjeer","figs"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Rich in calcium, iron, fiber. 2-3 soaked daily.",2:"Good calcium and iron.",3:"Helps constipation."},n:["Calcium","Iron","Fiber"]},
+{name:"Coconut Water",a:["nariyal pani","elaneer","tender coconut"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Natural electrolyte. Helps nausea.",2:"Prevents UTIs.",3:"Good for amniotic fluid."},n:["Electrolytes","Potassium","Magnesium"]},
+{name:"Lemon Water",a:["nimbu pani","lime water","lemon juice"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Great for nausea, hydration, Vitamin C.",2:"Continue for digestion.",3:"Helps heartburn."},n:["Vitamin C","Hydration"]},
+{name:"Coffee",a:["caffeine","kaapi","filter coffee"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Limit 200mg/day (about 1 small filter coffee).",2:"Keep under 200mg.",3:"Continue limiting."},n:["Caffeine"]},
+{name:"Tea",a:["chai","green tea","black tea"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"1-2 cups/day fine. Don't drink with iron-rich foods.",2:"Same. Avoid near iron supplements.",3:"Check herbal teas with doctor."},n:["Caffeine","Antioxidants"]},
+{name:"Soda / Soft Drinks",a:["coke","pepsi","cola","soda","fizzy drinks"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"High sugar, caffeine, no nutrition.",2:"Limit.",3:"Worsens heartburn."},n:["Sugar","Caffeine"]},
+{name:"Alcohol",a:["beer","wine","spirits","cocktail","sharab"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"No safe amount. Avoid completely.",2:"Continue avoiding.",3:"Avoid."},n:[]},
+{name:"Turmeric",a:["haldi","turmeric milk"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Cooking amounts safe. Haldi milk soothing.",2:"Continue haldi milk.",3:"Safe in food."},n:["Anti-inflammatory","Antioxidants"]},
+{name:"Ginger",a:["adrak","ginger tea","shunti"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Excellent for morning sickness! Max 1g dried/day.",2:"Helps digestion.",3:"Helps if nausea returns."},n:["Anti-nausea","Anti-inflammatory"]},
+{name:"Saffron",a:["kesar","kumkuma"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"A pinch in milk safe. 1-2 strands only.",2:"Continue in small amounts.",3:"Safe in culinary amounts."},n:["Antioxidants"]},
+{name:"Fenugreek (large amounts)",a:["methi","fenugreek seeds","methi seeds"],s:{1:"caution",2:"safe",3:"safe"},i:{1:"Large amounts may stimulate contractions. Small cooking amounts fine.",2:"Normal food amounts safe.",3:"Safe in cooking."},n:["Iron","Fiber"]},
+{name:"Ajinomoto / MSG",a:["msg","ajinomoto","chinese food"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Best to avoid.",2:"Continue limiting.",3:"Continue avoiding."},n:[]},
+{name:"Pickles / Achar",a:["pickle","achar","uppinakaayi"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"High sodium. Small amounts for cravings.",2:"Okay as condiment.",3:"Limit."},n:["Sodium"]},
+{name:"Tulsi (Holy Basil)",a:["tulsi","holy basil","tulsi tea"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Large amounts may be uterine stimulant. Few leaves fine.",2:"Small food amounts fine.",3:"Food amounts okay."},n:["Antioxidants"]},
+{name:"Honey",a:["shahad","jenu"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Safe for mother. Good for nausea.",2:"Use as sweetener.",3:"Good sugar alt."},n:["Antioxidants","Energy"]},
+{name:"Jaggery",a:["gur","bella","gud"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Better than sugar. Contains iron.",2:"Good iron source.",3:"Continue in moderation."},n:["Iron","Minerals"]},
+{name:"Peanut Butter",a:["peanut butter","groundnut butter"],s:{1:"safe",2:"safe",3:"safe"},i:{1:"Good protein and healthy fats.",2:"Continue for protein.",3:"Healthy snack."},n:["Protein","Healthy Fats","Vitamin E"]},
+{name:"Dark Chocolate",a:["chocolate","dark choc"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"1-2 squares fine. Contains caffeine.",2:"Small amounts fine.",3:"Occasional treat."},n:["Iron","Antioxidants","Caffeine"]},
+{name:"Street Food",a:["pani puri","golgappa","chaat","vada pav"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Hygiene concerns. Make at home.",2:"Homemade safer.",3:"Be careful."},n:[]},
+{name:"Junk Food",a:["chips","burger","pizza","fried food","maggi","instant noodles"],s:{1:"caution",2:"caution",3:"caution"},i:{1:"Occasional okay. Minimize.",2:"Occasional treat.",3:"Focus on nutrients."},n:["Empty calories"]},
+{name:"Unwashed Produce",a:["unwashed salad","dirty produce","unwashed fruits"],s:{1:"avoid",2:"avoid",3:"avoid"},i:{1:"Always wash. Soak in vinegar water.",2:"Continue washing.",3:"Always wash."},n:[]}
+];
+
+// ================================================================
+// MEAL-WISE CHECKLIST
+// ================================================================
+var defaultCL={
+  wakeup:[
+    {id:"wu1",text:"Glass of warm water with lemon",sub:"Kickstarts digestion, helps with nausea",type:"hydration",custom:false},
+    {id:"wu2",text:"Soaked almonds (8-10) + 2-3 dates",sub:"Soak overnight — folate, Vitamin E, iron boost",type:"food",custom:false},
+    {id:"wu3",text:"Folic acid tablet",sub:"Usually 5mg — crucial for neural tube development",type:"supplement",custom:false}
+  ],
+  breakfast:[
+    {id:"bf1",text:"Protein-rich breakfast",sub:"Egg omelette/bhurji, paneer paratha, ragi dosa, or idli",type:"food",custom:false},
+    {id:"bf2",text:"Glass of milk (warm/cold)",sub:"Calcium + Vitamin D — add turmeric or saffron",type:"food",custom:false},
+    {id:"bf3",text:"Prenatal vitamin / DHA capsule",sub:"Take with food. As prescribed by doctor.",type:"supplement",custom:false}
+  ],
+  midmorning:[
+    {id:"mm1",text:"Seasonal fruit",sub:"Apple, pomegranate, banana, guava, blueberries, or kiwi",type:"food",custom:false},
+    {id:"mm2",text:"Coconut water / fresh juice",sub:"Natural electrolytes — great for nausea and hydration",type:"hydration",custom:false},
+    {id:"mm3",text:"5-minute deep breathing",sub:"Box breathing or gentle pranayama",type:"wellness",custom:false}
+  ],
+  lunch:[
+    {id:"lu1",text:"Dal / sambar serving",sub:"Iron + folate + protein — squeeze lemon for absorption",type:"food",custom:false},
+    {id:"lu2",text:"Green leafy vegetable",sub:"Palak sabzi, methi, drumstick sambar, or any greens",type:"food",custom:false},
+    {id:"lu3",text:"Bowl of curd / raita",sub:"Probiotics for digestion, calcium for baby",type:"food",custom:false},
+    {id:"lu4",text:"Iron + Calcium supplement",sub:"If prescribed post-lunch. Don't take both together.",type:"supplement",custom:false}
+  ],
+  afternoon:[
+    {id:"af1",text:"Roasted makhana / foxnuts",sub:"Low cal, high protein — roast in ghee with salt",type:"food",custom:false},
+    {id:"af2",text:"Buttermilk / lassi / lemon water",sub:"Hydration + digestion support",type:"hydration",custom:false},
+    {id:"af3",text:"Power nap / rest (20-30 min)",sub:"First trimester fatigue is real — rest guilt-free",type:"wellness",custom:false}
+  ],
+  evening:[
+    {id:"ev1",text:"Evening snack",sub:"Ragi malt, oats, PB toast, sprouts chaat, or smoothie",type:"food",custom:false},
+    {id:"ev2",text:"15-20 min gentle walk",sub:"Aids digestion, boosts mood, helps bloating",type:"wellness",custom:false},
+    {id:"ev3",text:"Handful of walnuts + dry fruits",sub:"4-5 walnuts, raisins, dried figs — omega-3 and iron",type:"food",custom:false}
+  ],
+  dinner:[
+    {id:"di1",text:"Protein serving",sub:"Chicken curry, paneer, dal, or egg — well cooked",type:"food",custom:false},
+    {id:"di2",text:"Cooked vegetables",sub:"Any seasonal — beetroot, carrot, pumpkin, capsicum",type:"food",custom:false},
+    {id:"di3",text:"Light carb",sub:"1-2 rotis or small rice serving",type:"food",custom:false}
+  ],
+  bedtime:[
+    {id:"bt1",text:"Warm haldi / saffron milk",sub:"Calcium + sleep aid",type:"food",custom:false},
+    {id:"bt2",text:"Water check — had 8-10 glasses?",sub:"Dehydration worsens nausea and constipation",type:"hydration",custom:false},
+    {id:"bt3",text:"Prenatal stretches / gentle yoga",sub:"Even 10 min relaxes before sleep",type:"wellness",custom:false},
+    {id:"bt4",text:"Gratitude / relaxation moment",sub:"Talk to baby, journal, or breathe. You are doing great!",type:"wellness",custom:false}
+  ]
+};
+
+var slotMeta={
+  wakeup:{icon:"🌅",title:"Early Morning",time:"6:30 – 7:30 AM"},
+  breakfast:{icon:"🍳",title:"Breakfast",time:"8:00 – 9:00 AM"},
+  midmorning:{icon:"🍎",title:"Mid-Morning Snack",time:"10:30 – 11:00 AM"},
+  lunch:{icon:"🍛",title:"Lunch",time:"12:30 – 1:30 PM"},
+  afternoon:{icon:"☕",title:"Afternoon",time:"3:00 – 4:00 PM"},
+  evening:{icon:"🌤️",title:"Evening Snack",time:"5:30 – 6:30 PM"},
+  dinner:{icon:"🍽️",title:"Dinner",time:"7:30 – 8:30 PM"},
+  bedtime:{icon:"🌙",title:"Bedtime",time:"9:30 – 10:30 PM"}
+};
+var typeTags={food:{label:"Food",cls:"food"},supplement:{label:"Supplement",cls:"supplement"},hydration:{label:"Hydration",cls:"hydration"},wellness:{label:"Wellness",cls:"wellness"}};
+
+// STATE
+var curTri=1, viewDate=new Date(), clData=null;
+
+function dk(d){return d.toISOString().split('T')[0]}
+function isToday(d){return dk(d)===dk(new Date())}
+function isFuture(d){var t=new Date();t.setHours(0,0,0,0);var dd=new Date(d);dd.setHours(0,0,0,0);return dd>t}
+function addDays(d,n){var r=new Date(d);r.setDate(r.getDate()+n);return r}
+function fmtShort(d){return d.toLocaleDateString('en-IN',{day:'numeric',month:'short'})}
+function fmtLong(d){return d.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'})}
+function getChecks(d){try{return JSON.parse(localStorage.getItem('bb_ck_'+dk(d)))||{}}catch(e){return{}}}
+function saveChecks(d,c){localStorage.setItem('bb_ck_'+dk(d),JSON.stringify(c))}
+function getPct(d){var c=getChecks(d),t=0,dn=0;for(var k in (clData||defaultCL)){var items=(clData||defaultCL)[k];t+=items.length;items.forEach(function(i){if(c[i.id])dn++})}return t?Math.round(dn/t*100):0}
+
+// INIT
+document.addEventListener('DOMContentLoaded',function(){
+  initTabs();initFood();initCL();
+  // Register Service Worker
+  if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js').catch(function(e){console.log('SW reg failed',e)})}
+});
+
+// PWA Install
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt',function(e){
+  e.preventDefault();
+  deferredPrompt=e;
+  document.getElementById('installBanner').classList.add('show');
+});
+document.getElementById('installBtn').addEventListener('click',function(){
+  if(!deferredPrompt)return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(){deferredPrompt=null;document.getElementById('installBanner').classList.remove('show')});
+});
+document.getElementById('dismissInstall').addEventListener('click',function(){document.getElementById('installBanner').classList.remove('show')});
+
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active')});
+      document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active')});
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
+// FOOD CHECKER
+function initFood(){
+  var inp=document.getElementById('foodSearch');
+  inp.addEventListener('input',debounce(searchFood,250));
+  document.getElementById('foodCount').textContent=DB.length+' foods in database';
+  document.querySelectorAll('.tri-b').forEach(function(b){
+    b.addEventListener('click',function(){
+      document.querySelectorAll('.tri-b').forEach(function(x){x.classList.remove('active')});
+      b.classList.add('active');curTri=parseInt(b.dataset.tri);
+      if(inp.value.trim())searchFood();
+    });
+  });
+}
+function searchFood(){
+  var q=document.getElementById('foodSearch').value.trim().toLowerCase(),r=document.getElementById('foodResults');
+  if(!q){r.innerHTML='<div class="empty-state"><div class="ei">🥗</div><p>Type a food name to check safety<br><span style="font-size:12px;color:#B89A9A">'+DB.length+' foods</span></p></div>';return}
+  var m=DB.filter(function(f){return f.name.toLowerCase().indexOf(q)!==-1||f.a.some(function(a){return a.toLowerCase().indexOf(q)!==-1})});
+  if(!m.length){r.innerHTML='<div class="empty-state"><div class="ei">🤔</div><p>No results for "'+esc(q)+'"</p></div>';return}
+  var o={avoid:0,caution:1,safe:2};m.sort(function(a,b){return o[a.s[curTri]]-o[b.s[curTri]]});
+  r.innerHTML=m.map(function(f,i){var st=f.s[curTri],lb=st==='safe'?'✅ Safe':st==='caution'?'⚠️ Caution':'🚫 Avoid';return'<div class="food-card '+st+'" style="animation-delay:'+i*0.04+'s"><div class="fh"><div class="fn">'+f.name+'</div><div class="fb '+st+'">'+lb+'</div></div><div class="fi">'+f.i[curTri]+'</div>'+(f.n.length?'<div class="fnu">'+f.n.map(function(n){return'<span class="nt">'+n+'</span>'}).join('')+'</div>':'')+'</div>'}).join('');
+}
+
+// CHECKLIST
+function initCL(){
+  var sv=localStorage.getItem('bb_cl_v5');
+  clData=sv?JSON.parse(sv):JSON.parse(JSON.stringify(defaultCL));
+  if(!sv)localStorage.setItem('bb_cl_v5',JSON.stringify(clData));
+  viewDate=new Date();
+  renderNav();renderWeek();renderCL();
+}
+
+function navDate(d){var n=addDays(viewDate,d);if(isFuture(n))return;viewDate=n;renderNav();renderWeek();renderCL()}
+function goToday(){viewDate=new Date();renderNav();renderWeek();renderCL()}
+
+function renderNav(){
+  var td=isToday(viewDate);
+  document.getElementById('dateMain').innerHTML=fmtShort(viewDate)+(td?' <span class="today-badge">TODAY</span>':' <span class="past-badge">PAST</span>');
+  document.getElementById('dateSub').textContent=fmtLong(viewDate);
+  document.getElementById('dateNext').disabled=td;
+  document.getElementById('pastBanner').style.display=td?'none':'block';
+  document.getElementById('rstBtn').style.display=td?'block':'none';
+}
+
+function renderWeek(){
+  var s=document.getElementById('weekStrip'),today=new Date();today.setHours(0,0,0,0);
+  var days=[],dn=['S','M','T','W','T','F','S'];
+  for(var i=-6;i<=0;i++)days.push(addDays(today,i));
+  s.innerHTML=days.map(function(d){
+    var k=dk(d),sel=dk(viewDate)===k,fut=isFuture(d),p=fut?-1:getPct(d);
+    var cls='none';if(fut)cls='future';else if(p===100)cls='full';else if(p>=70)cls='high';else if(p>=30)cls='mid';else if(p>0)cls='low';
+    return'<div class="wd'+(sel?' sel':'')+'" onclick="jumpDate(\''+k+'\')"><span class="wl">'+dn[d.getDay()]+'</span><span class="wn">'+d.getDate()+'</span><span class="wo '+cls+'">'+(fut?'':p+'%')+'</span></div>';
+  }).join('');
+}
+
+function jumpDate(k){viewDate=new Date(k+'T00:00:00');renderNav();renderWeek();renderCL()}
+
+function renderCL(){
+  var c=document.getElementById('clContainer'),checks=getChecks(viewDate),ro=!isToday(viewDate);
+  var total=0,done=0,html='';
+  for(var sk in clData){
+    var meta=slotMeta[sk];if(!meta)continue;
+    var items=clData[sk],sd=items.filter(function(i){return checks[i.id]}).length;
+    total+=items.length;done+=sd;
+    var allD=sd===items.length&&items.length>0;
+    html+='<div class="cl-cat"><div class="ch"><span class="ci">'+meta.icon+'</span><span class="ct">'+meta.title+'</span><span class="ctime">'+meta.time+'</span><span class="cc">'+(allD?'✅':sd+'/'+items.length)+'</span></div>';
+    items.forEach(function(item){
+      var ch=checks[item.id]?'checked':'',roc=ro?'ro':'',tag=typeTags[item.type]||typeTags.food;
+      html+='<div class="ck-item '+ch+' '+roc+'" '+(ro?'':'onclick="toggleIt(\''+item.id+'\')"')+'><div class="ck-circle">✓</div><div class="ck-content"><div class="ck-text">'+esc(item.text)+'</div>'+(item.sub?'<div class="ck-sub">'+esc(item.sub)+'</div>':'')+'<span class="it '+tag.cls+'">'+tag.label+'</span></div>'+(item.custom&&!ro?'<button class="del-btn" onclick="event.stopPropagation();delIt(\''+sk+'\',\''+item.id+'\')">✕</button>':'')+'</div>';
+    });
+    if(!ro)html+='<button class="add-btn" onclick="openModal(\''+sk+'\')">+ Add to '+meta.title+'</button>';
+    html+='</div>';
+  }
+  c.innerHTML=html;
+  var pct=total?Math.round(done/total*100):0;
+  document.getElementById('pBar').style.width=pct+'%';
+  document.getElementById('pText').textContent=done+' of '+total+' completed ('+pct+'%)';
+}
+
+function toggleIt(id){
+  if(!isToday(viewDate))return;
+  var c=getChecks(viewDate);c[id]=!c[id];saveChecks(viewDate,c);renderCL();renderWeek();
+}
+function delIt(sk,id){
+  if(!confirm('Remove this item?'))return;
+  clData[sk]=clData[sk].filter(function(i){return i.id!==id});
+  var c=getChecks(viewDate);delete c[id];
+  localStorage.setItem('bb_cl_v5',JSON.stringify(clData));saveChecks(viewDate,c);renderCL();renderWeek();
+}
+function resetCl(){
+  if(!confirm('Reset all checks for today?'))return;
+  saveChecks(viewDate,{});renderCL();renderWeek();
+}
+
+// MODAL
+function openModal(sk){
+  var sel=document.getElementById('niSlot');
+  sel.innerHTML=Object.keys(slotMeta).map(function(k){var v=slotMeta[k];return'<option value="'+k+'"'+(k===sk?' selected':'')+'>'+v.icon+' '+v.title+'</option>'}).join('');
+  document.getElementById('niName').value='';document.getElementById('niDesc').value='';document.getElementById('niType').value='food';
+  document.getElementById('addModal').classList.add('show');
+  setTimeout(function(){document.getElementById('niName').focus()},100);
+}
+function closeModal(){document.getElementById('addModal').classList.remove('show')}
+function addCustom(){
+  var nm=document.getElementById('niName').value.trim(),ds=document.getElementById('niDesc').value.trim();
+  var sl=document.getElementById('niSlot').value,tp=document.getElementById('niType').value;
+  if(!nm){alert('Please enter a name');return}
+  var id='c_'+Date.now();
+  if(!clData[sl])clData[sl]=[];
+  clData[sl].push({id:id,text:nm,sub:ds,type:tp,custom:true});
+  localStorage.setItem('bb_cl_v5',JSON.stringify(clData));closeModal();renderCL();
+}
+document.getElementById('addModal').addEventListener('click',function(e){if(e.target===e.currentTarget)closeModal()});
+
+function debounce(fn,ms){var t;return function(){var a=arguments,self=this;clearTimeout(t);t=setTimeout(function(){fn.apply(self,a)},ms)}}
+function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+</script>
+</body>
+</html>
