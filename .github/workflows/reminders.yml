@@ -1,0 +1,74 @@
+name: BumpBite Meal Reminders
+
+on:
+  schedule:
+    # All times in UTC (IST = UTC + 5:30)
+    - cron: '30 1 * * *'    # 7:00 AM IST → Early Morning
+    - cron: '30 4 * * *'   # 10:00 AM IST → Breakfast
+    - cron: '0 6 * * *'    # 11:30 AM IST → Mid-Morning Snack
+    - cron: '30 8 * * *'    # 2:00 PM IST → Lunch
+    - cron: '30 10 * * *'   # 4:00 PM IST → Afternoon
+    - cron: '0 12 * * *'   # 5:30 PM IST → Evening Snack
+    - cron: '30 15 * * *'   # 9:00 PM IST → Dinner
+    - cron: '30 17 * * *'   # 11:00 PM IST → Bedtime
+  workflow_dispatch:       # Allows manual test trigger
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send meal reminder
+        run: |
+          # Current UTC hour and minute
+          HOUR=$(date -u +%H)
+          MIN=$(date -u +%M)
+
+          # Map UTC time to meal slot
+          # We check approximate windows since cron can be a few minutes late
+          if [ "$HOUR" -eq 1 ]; then
+            TITLE="🌅 Early Morning"
+            MSG="Warm lemon water + soaked almonds"
+            TAG="sunrise"
+          elif [ "$HOUR" -eq 2 ]; then
+            TITLE="🍳 Breakfast Time"
+            MSG="Protein breakfast (egg/paneer/ragi dosa) + milk + + folic acid tablet"
+            TAG="egg"
+          elif [ "$HOUR" -eq 5 ]; then
+            TITLE="🍎 Mid-Morning Snack"
+            MSG="Seasonal fruit + coconut water + 5 min deep breathing"
+            TAG="apple"
+          elif [ "$HOUR" -eq 7 ]; then
+            TITLE="🍛 Lunch Time"
+            MSG="Dal/sambar + green leafy veggie + curd + iron/calcium supplement"
+            TAG="curry"
+          elif [ "$HOUR" -eq 9 ]; then
+            TITLE="☕ Afternoon Break"
+            MSG="Roasted makhana + buttermilk/lassi + power nap if tired"
+            TAG="coffee"
+          elif [ "$HOUR" -eq 12 ]; then
+            TITLE="🌤️ Evening Snack"
+            MSG="Ragi malt/oats/smoothie + gentle walk + walnuts & dry fruits"
+            TAG="sunny"
+          elif [ "$HOUR" -eq 14 ]; then
+            TITLE="🍽️ Dinner Time"
+            MSG="Protein (chicken/paneer/dal) + cooked veggies + light roti/rice"
+            TAG="fork_and_knife"
+          elif [ "$HOUR" -eq 16 ]; then
+            TITLE="🌙 Bedtime Routine"
+            MSG="Haldi milk + water check (8-10 glasses?) + stretches + relax 💛"
+            TAG="crescent_moon"
+          else
+            echo "No matching meal slot for hour $HOUR"
+            exit 0
+          fi
+
+          # Send notification via ntfy.sh
+          curl -s \
+            -H "Title: $TITLE" \
+            -H "Tags: $TAG" \
+            -H "Priority: default" \
+            -H "Click: https://shreyansgsr.github.io/bumpbite/" \
+            -d "$MSG" \
+            "https://ntfy.sh/${{ secrets.NTFY_TOPIC }}"
+
+          echo "Sent: $TITLE at $(date -u)"
