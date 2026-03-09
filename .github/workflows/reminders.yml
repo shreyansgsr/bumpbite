@@ -10,7 +10,7 @@ on:
     - cron: '30 10 * * *'   # 4:00 PM IST → Afternoon
     - cron: '0 12 * * *'   # 5:30 PM IST → Evening Snack
     - cron: '30 15 * * *'   # 9:00 PM IST → Dinner
-    - cron: '30 17 * * *'   # 11:00 PM IST → Bedtime
+    - cron: '15 18 * * *'   # 11:45 PM IST → Bedtime
   workflow_dispatch:       # Allows manual test trigger
 
 jobs:
